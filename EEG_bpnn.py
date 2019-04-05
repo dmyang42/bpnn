@@ -3,6 +3,8 @@ from bpnn_ref import BPNNet
 import pandas as pd
 import numpy as np
 
+np.set_printoptions(threshold=np.nan)
+
 def read_feature(filename):
     # 读取EEG_feature文件
     with open(filename) as f:
@@ -100,11 +102,13 @@ def ref_std(data, labels):
 train_data, train_labels, test_data, test_labels = load_EEG_va_data()
 
 eeg_bpnn = BPNN(160, 20, 2)
-eeg_bpnn.train(train_data, train_labels, 1, 0.0001)
+eeg_bpnn.accumulate_train(samples=train_data, labels=train_labels, rate=1, epochs=1000)
+print("Training Finished!")
 predict_labels = np.array(eeg_bpnn.test(test_data))
 
-print(np.sum((predict_labels - test_labels) ** 2))
-# print(predict_labels)
+outfile = open("EEG-test", "w+")
+for i in range(len(test_labels)):
+    print(test_labels[i], '->', predict_labels[i], file=outfile)
 
 # train_samples = ref_std(train_data, train_labels)
 # test_samples = ref_std(test_data, test_labels)
