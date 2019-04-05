@@ -10,6 +10,16 @@ class sample_size_err(InputError):
         super(InputError,self).__init__("Data Size does not fit the initial input number!")
         self.errorinfo="Data Size does not fit the initial input number!"
 
+class weights_size_err(InputError):
+    def __init__(self):
+        super(InputError,self).__init__("Weights Size does not fit the initial input number!")
+        self.errorinfo="Weights Size does not fit the initial input number!"
+
+class thresholds_size_err(InputError):
+    def __init__(self):
+        super(InputError,self).__init__("Thresholds Size does not fit the initial input number!")
+        self.errorinfo="Thresholds Size does not fit the initial input number!"
+
 class sample_label_err(InputError):
     def __init__(self):
         super(InputError,self).__init__("Length of sample does not equal to length of label!")

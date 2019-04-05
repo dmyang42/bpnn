@@ -2,6 +2,10 @@ from bpnn import BPNN
 from bpnn_ref import BPNNet
 import pandas as pd
 import numpy as np
+import sys
+import argparse
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix  
 
 np.set_printoptions(threshold=np.nan)
 
@@ -23,8 +27,8 @@ def read_label(filename):
         label = []
         for line in lines:
             line = line.split()
-            line = [int(i) for i in line]
-            label.append(line)
+            # line = [int(i) for i in line]
+            label.append(int(line[0]))
     return np.array(label)
 
 def load_EEG_va_train():
@@ -46,6 +50,19 @@ def load_EEG_va_data():
     train_data, train_labels = load_EEG_va_train()
     test_data, test_labels = load_EEG_va_test()
     return train_data, train_labels, test_data, test_labels
+
+def load_EEG_valence_data():
+    # 导入EEG-valence数据
+    data1 = read_feature("./EEG/DEAP/EEG_feature.txt")
+    label1 = read_label("./EEG/DEAP/valence_arousal_label.txt")
+    data2 = read_feature("./EEG/MAHNOB-HCI/EEG_feature.txt")
+    label2 = read_label("./EEG/MAHNOB-HCI/valence_arousal_label.txt")
+    data = np.row_stack((data1, data2))
+    if len(label1.shape) == 1:
+        label = np.array(list(label1) + list(label2))
+    else:
+        label = np.row_stack((label1, label2))
+    return data, label - 1
 
 def load_EEG_emotion_data():
     # 导入EEG-emotion数据
@@ -91,28 +108,64 @@ def ref_std(data, labels):
         samples.append(sample)
     return samples
 
+parser = argparse.ArgumentParser(description='manual to this script')
+parser.add_argument('--random-seed', type=int, default=3)
+args = parser.parse_args()
+
+seed = args.random_seed
+
 # EEG-emotion
 # data, labels = load_EEG_emotion_data()
 # index = group_sampling(labels)
 # train_data, test_data, train_label, test_label = gen_grouped_data_set(data, labels, index)
-# train_labels = train_labels.reshape(len(train_labels), 1)
-# test_labels = test_labels.reshape(len(test_labels), 1)
+
+# EEG-valence
+data, labels = load_EEG_valence_data()
+index = group_sampling(labels)
+train_data, test_data, train_label, test_label = gen_grouped_data_set(data, labels, index)
+
+print(pd.value_counts(train_label))
+print(pd.value_counts(test_label))
+
+eeg_bpnn = BPNN(160, 20, 1, random_seed=seed)
+eeg_bpnn.accumulate_train(samples=train_data, labels=train_label, rate=1, epochs=300)
+eeg_bpnn.accumulate_train(samples=train_data, labels=train_label, rate=0.5, epochs=300)
+eeg_bpnn.accumulate_train(samples=train_data, labels=train_label, rate=0.1, epochs=300)
+eeg_bpnn.save("EEG" + str(seed) + ".m")
+print("Training Finished!")
+
+# predict_label = np.array(eeg_bpnn.test(test_data))
+# outfile = open("EEG-test-" + str(seed), "w+")
+# for i in range(len(test_label)):
+#     print(test_label[i], '->', predict_label[i], file=outfile)
+
+
+# sklearn.randomforest - 随机森林
+# rfc = RandomForestClassifier(n_estimators=500, oob_score=True, criterion="gini", \
+# max_features="log2")
+# rfc.fit(train_data, train_label)
+# print("Random Forest oob_score: " + str(rfc.oob_score_))
+# predict_label = rfc.predict(test_data)
+# matrix = confusion_matrix(test_label, predict_label)
+# print(matrix)
 
 # EEG-valence-arousal
-train_data, train_labels, test_data, test_labels = load_EEG_va_data()
+# train_data, train_labels, test_data, test_labels = load_EEG_va_data()
 
-eeg_bpnn = BPNN(160, 20, 2)
-eeg_bpnn.accumulate_train(samples=train_data, labels=train_labels, rate=1, epochs=1000)
-print("Training Finished!")
-predict_labels = np.array(eeg_bpnn.test(test_data))
+# eeg_bpnn = BPNN(160, 20, 1, random_seed=seed)
+# eeg_bpnn.accumulate_train(samples=train_data, labels=train_labels, rate=1, epochs=200)
+# eeg_bpnn.save("EEG" + str(seed) + ".m")
+# print("Training Finished!")
 
-outfile = open("EEG-test", "w+")
-for i in range(len(test_labels)):
-    print(test_labels[i], '->', predict_labels[i], file=outfile)
+# predict_labels = np.array(eeg_bpnn.test(test_data))
+# outfile = open("EEG-test-" + str(seed), "w+")
+# for i in range(len(test_labels)):
+#     print(test_labels[i], '->', predict_labels[i], file=outfile)
 
+# bpnn-ref
 # train_samples = ref_std(train_data, train_labels)
 # test_samples = ref_std(test_data, test_labels)
 
-# eeg_bpnn = BPNNet(160, 20, 2)
+# eeg_bpnn = BPNNet(160, 20, 1)
 # eeg_bpnn.train(train_samples)
 # eeg_bpnn.test(test_samples)

@@ -3,8 +3,6 @@ import numpy as np
 import pickle
 from MyError import *
 
-random.seed(3)
-
 # 生成(a,b)间的一个随机数
 def _rand(a, b):
     return (b - a) * random.random() + a
@@ -26,9 +24,9 @@ class Unit:
     """
     def __init__(self, input_num):
         # 该节点的参数初始化
-        self._weight = np.array([_rand(-0.2, 0.2) \
+        self._weight = np.array([_rand(-1, 1) \
             for i in range(input_num)]) # 对应于input_num的权值
-        self._threshold = _rand(-0.2, 0.2) # 该节点的阈值
+        self._threshold = _rand(-1, 1) # 该节点的阈值
 
         # 节点的变化量初始化
         # self._step = [0.0] * input_num
@@ -166,13 +164,15 @@ class BPNN:
     _hidden_layer - 输入层 --> 隐藏层
     _output_layer - 隐藏层 --> 输出层
     """
-    def __init__(self, input_num, hidden_num, output_num):
+    def __init__(self, input_num, hidden_num, output_num, random_seed=3):
         # 初始化输入层, 隐藏层, 输出层
         self._input_num = input_num
         self._hidden_num = hidden_num
         self._output_num = output_num
         self._hidden_layer = Layer(self._input_num, self._hidden_num)
         self._output_layer = Layer(self._hidden_num, self._output_num)
+        
+        random.seed(random_seed)
 
     def _layer_load_data(self, layer, sample):
         """
@@ -252,7 +252,7 @@ class BPNN:
         delta_gamma = - rate * e
 
         # 均方误差
-        E = sum((output_layer_outputs - label) ** 2)
+        E = 0.5 * sum((output_layer_outputs - label) ** 2)
         return delta_w, delta_theta, delta_v, delta_gamma, E
 
     def _single_sample_test(self, sample):
@@ -277,8 +277,12 @@ class BPNN:
         """
         各种训练前的输入检查
         """
-        if samples.shape[1] != self._input_num or \
-            labels.shape[1] != self._output_num:
+        if len(labels.shape) == 1 and self._output_num == 1:
+            pass
+        elif len(samples.shape) == 1 and self._input_num == 1:
+            pass
+        elif samples.shape[1] != self._input_num or \
+                labels.shape[1] != self._output_num:
             # 输入或输出的样本特征数不匹配BPNN初始化的值
             raise sample_size_err()
         elif samples.shape[0] != labels.shape[0]:
