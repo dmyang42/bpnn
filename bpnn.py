@@ -24,9 +24,9 @@ class Unit:
     """
     def __init__(self, input_num):
         # 该节点的参数初始化
-        self._weight = np.array([_rand(-1, 1) \
+        self._weight = np.array([_rand(-0.2, 0.2) \
             for i in range(input_num)]) # 对应于input_num的权值
-        self._threshold = _rand(-1, 1) # 该节点的阈值
+        self._threshold = _rand(-0.2, 0.2) # 该节点的阈值
 
         # 节点的变化量初始化
         # self._step = [0.0] * input_num
@@ -307,9 +307,13 @@ class BPNN:
 
         # start training - 标准BP
         count = 0
-        while count < epochs:
+        r = rate
+        while count <= epochs:
             E = 0
             for i in range(sample_num):
+                rate = r
+                if labels[i] == 1:
+                    rate = rate * 1.2
                 delta_w, delta_theta, delta_v, delta_gamma, e = \
                     self._single_sample_epoch(samples[i], labels[i], rate)
                 E = E + e
@@ -321,7 +325,7 @@ class BPNN:
             count = count + 1  
         
         # end training  
-        print("\nTotal epochs: " + str(count))
+        print("\nTotal epochs: " + str(count-1))
        
     def accumulate_train(self, samples, labels, rate=1, 
                             precision=0.1, epochs=100):
@@ -340,7 +344,7 @@ class BPNN:
 
         # start training - 累积BP
         count = 0
-        while count < epochs:
+        while count <= epochs:
             E = 0 
             delta_ws, delta_thetas, delta_vs, delta_gammas = [], [], [], []
             for i in range(sample_num):
@@ -364,7 +368,7 @@ class BPNN:
             count = count + 1
         
         # end training
-        print("\nTotal epochs: " + str(count))
+        print("\nTotal epochs: " + str(count-1))
     
     def get_bpnn(self):
         """
@@ -393,6 +397,27 @@ class BPNN:
             labels = np.row_stack((labels, \
                 self._single_sample_test(samples[i])))
         return labels
+
+    def accuracy(self, test, predict):
+        """
+        测试Label与预测Label比较
+        得到准确度
+        """
+        test = list(test.reshape(len(test)))
+        predict = list(predict.reshape(len(predict)))
+        test_negetive = test.count(0)
+        test_positive = test.count(1)
+        predict = [round(i) for i in predict]
+        count_0, count_1 = 0, 0
+        for i, j in zip(test, predict):
+            if i == j and i == 0:
+                count_0 = count_0 + 1
+            elif i == j and i == 1:
+                count_1 = count_1 + 1
+
+        print(count_0, test_negetive - count_0)
+        print(test_positive - count_1, count_1)
+
     def save(self, filename):
         """
         保存bp神经网络
