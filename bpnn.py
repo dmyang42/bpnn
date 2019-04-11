@@ -312,8 +312,8 @@ class BPNN:
             E = 0
             for i in range(sample_num):
                 rate = r
-                if labels[i] == 1:
-                    rate = rate * 1.2
+#                 if labels[i] == 1:
+#                     rate = rate * 1.2
                 delta_w, delta_theta, delta_v, delta_gamma, e = \
                     self._single_sample_epoch(samples[i], labels[i], rate)
                 E = E + e
